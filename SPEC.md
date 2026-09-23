@@ -35,14 +35,30 @@ The reference deployment uses uhttpd with the script at
 browser submits actions to `POST /cgi-bin/weichenweb/api/turnout`; uhttpd must
 pass `/api/turnout` as `PATH_INFO`.
 
-The action endpoint accepts an `application/x-www-form-urlencoded` body with
-`address` and `state` fields. `address` must be an integer in the configured
-inclusive range, and `state` must be `R` or `G` (case-insensitive). A successful
-request returns `200 OK` and `{"ok":true}`. Invalid input returns `400 Bad
-Request`, a body-size violation returns `413 Payload Too Large`, an unavailable
-remote connection returns `503 Service Unavailable`, and a recent-state write
-failure returns `500 Internal Server Error`. Browser requests must not be able
-to submit arbitrary data as a packet.
+The REST action endpoint is `POST /cgi-bin/weichenweb/api/turnout`, with
+`/api/turnout` passed as `PATH_INFO`. It accepts an `application/json` object
+with exactly these fields:
+
+```json
+{"address":3,"direction":"red","power":1}
+```
+
+`address` must be an integer in the configured inclusive range. `direction`
+must be `red` or `green`, and `power` must be integer `0` or `1`; `0` switches
+off and `1` switches on. The direction is mapped to the packet's `Stellung`
+field and power is mapped to its `Strom` field as defined in
+`Accessory-Packet.md`.
+
+A successful request returns `200 OK` and `{"ok":true}`. Invalid input returns
+`400 Bad Request`, a body-size violation returns `413 Payload Too Large`, an
+unavailable remote connection returns `503 Service Unavailable`, and a
+recent-state write failure returns `500 Internal Server Error`. Browser
+requests must not be able to submit arbitrary data as a packet.
+
+`GET /cgi-bin/weichenweb/swagger` serves the Swagger UI page and
+`GET /cgi-bin/weichenweb/swagger.json` serves the OpenAPI 3.0.3 document for
+the REST endpoint. The UI references the Swagger UI distribution from
+`unpkg.com`; the OpenAPI document is served by the application.
 
 The recent-address list is server-side state so that all clients see the same
 list. In CGI mode it is stored as one address per line in `RECENT_FILE`; the

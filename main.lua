@@ -108,13 +108,13 @@ local function accessory_hash(uid)
   return math.floor(raw_hash / 0x400) * 0x400 + raw_hash % 0x80 + 0x300
 end
 
-local function accessory_packet(address, state)
+local function accessory_packet(address, state, power)
   local loc_id = 0x3000 + address - 1
   local state_byte = state == "R" and 0x00 or 0x01
   local hash = accessory_hash(config.uid)
   local can_id = 4 * 2 ^ 25 + 0x16 * 2 ^ 16 + hash
   return int_bytes(can_id) .. string.char(0x06) .. int_bytes(loc_id)
-    .. string.char(state_byte, 0x01, 0x00, 0x00)
+    .. string.char(state_byte, power, 0x00, 0x00)
 end
 
 local remote_socket
@@ -132,7 +132,7 @@ local function send_all(connection, data)
   return true
 end
 
-local function send_accessory(address, state)
+local function send_accessory(address, state, power)
   if not remote_socket then
     local connection, socket_error = socket.tcp()
     if not connection then return nil, socket_error end
@@ -141,7 +141,7 @@ local function send_accessory(address, state)
     if not connected then connection:close(); return nil, connect_error end
     remote_socket = connection
   end
-  local sent, send_error = send_all(remote_socket, accessory_packet(address, state))
+  local sent, send_error = send_all(remote_socket, accessory_packet(address, state, power))
   if not sent then close_remote(); return nil, send_error end
   return true
 end
@@ -167,20 +167,77 @@ local function page()
 </head><body><h1>Turnout control</h1><h2>Recent turnouts</h2><ul>]] .. list .. [[</ul>
 <div class="entry"><h2>Address</h2><input id="address" type="number" min="]] .. config.address_min .. [[" max="]] .. config.address_max .. [[" step="1">
 <button class="red" onclick="submitAddress('R')">Red</button><button class="green" onclick="submitAddress('G')">Green</button></div>
- <script>async function sendTurnout(address,state){const response=await fetch(']] .. html_escape(api_url) .. [[',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'address='+encodeURIComponent(address)+'&state='+state});const result=await response.json();if(!response.ok){alert(result.error);return;}location.reload();}function submitAddress(state){const input=document.getElementById('address');if(!input.value){alert('Enter a turnout address.');return;}sendTurnout(input.value,state);}</script></body></html>]]
+ <script>async function sendTurnout(address,direction){const response=await fetch(']] .. html_escape(api_url) .. [[',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:Number(address),direction:direction,power:1})});const result=await response.json();if(!response.ok){alert(result.error);return;}location.reload();}function submitAddress(direction){const input=document.getElementById('address');if(!input.value){alert('Enter a turnout address.');return;}sendTurnout(input.value,direction);}</script></body></html>]]
 end
 
-local function url_decode(value)
-  return value:gsub("+", " "):gsub("%%(%x%x)", function(hex) return string.char(tonumber(hex, 16)) end)
-end
-
-local function form_values(body)
+local function json_values(body)
+  if not body:match("^%s*{.*}%s*$") then
+    return nil, "request body must be a JSON object"
+  end
   local values = {}
-  for pair in body:gmatch("[^&]+") do
-    local key, value = pair:match("^([^=]*)=(.*)$")
-    if key then values[url_decode(key)] = url_decode(value) end
+  local quoted = {}
+  for key in body:gmatch('"([%w_]+)"%s*:') do
+    if key ~= "address" and key ~= "direction" and key ~= "power" then
+      return nil, "unknown JSON field: " .. key
+    end
+  end
+  for key, value in body:gmatch('"([%w_]+)"%s*:%s*"([^"]*)"') do
+    if values[key] then return nil, "duplicate JSON field: " .. key end
+    values[key] = value
+    quoted[key] = true
+  end
+  for key, value in body:gmatch('"([%w_]+)"%s*:%s*(-?%d+)') do
+    if values[key] then return nil, "duplicate JSON field: " .. key end
+    values[key] = value
+  end
+  if not values.address or not values.direction or not values.power then
+    return nil, "request must contain address, direction, and power"
+  end
+  if quoted.address or quoted.power or not quoted.direction then
+    return nil, "address and power must be integers; direction must be a string"
   end
   return values
+end
+
+local function json_string(value)
+  return '"' .. tostring(value):gsub('\\', '\\\\'):gsub('"', '\\"')
+    :gsub('\n', '\\n'):gsub('\r', '\\r') .. '"'
+end
+
+local function swagger_spec()
+  local script_name = os.getenv("SCRIPT_NAME") or "/cgi-bin/weichenweb"
+  return [[{
+  "openapi":"3.0.3",
+  "info":{"title":"Weichenweb API","version":"1.0.0"},
+  "servers":[{"url":]] .. json_string(script_name) .. [[}],
+  "paths":{
+    "/api/turnout":{
+      "post":{
+        "summary":"Switch a turnout",
+        "operationId":"switchTurnout",
+        "requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/TurnoutRequest"},"example":{"address":3,"direction":"red","power":1}}}},
+        "responses":{"200":{"description":"Packet sent","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Success"}}}},"400":{"description":"Invalid request"},"500":{"description":"Recent state unavailable"},"503":{"description":"Remote connection unavailable"}}
+      }
+    }
+  },
+  "components":{"schemas":{
+    "TurnoutRequest":{"type":"object","required":["address","direction","power"],"additionalProperties":false,"properties":{"address":{"type":"integer","minimum":]] .. config.address_min .. [[,"maximum":]] .. config.address_max .. [[},"direction":{"type":"string","enum":["red","green"]},"power":{"type":"integer","enum":[0,1],"description":"0 = off, 1 = on"}}},
+    "Success":{"type":"object","required":["ok"],"properties":{"ok":{"type":"boolean","example":true}}}
+  }}
+}]]
+end
+
+local function swagger_page()
+  local script_name = os.getenv("SCRIPT_NAME") or "/cgi-bin/weichenweb"
+  local spec_url = script_name .. "/swagger.json"
+  return [[<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weichenweb API</title>
+<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+</head><body><div id="swagger-ui"></div>
+<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+<script>window.onload=function(){window.ui=SwaggerUIBundle({url:']] .. html_escape(spec_url) .. [[',dom_id:'#swagger-ui'});};</script>
+</body></html>]]
 end
 
 local function json_error(message)
@@ -205,16 +262,28 @@ local function handle_request()
   end
   if method == "GET" and path == "/" then
     response("200 OK", "text/html; charset=utf-8", page())
+  elseif method == "GET" and path == "/swagger" then
+    response("200 OK", "text/html; charset=utf-8", swagger_page())
+  elseif method == "GET" and path == "/swagger.json" then
+    response("200 OK", "application/json", swagger_spec())
   elseif method == "POST" and path == "/api/turnout" then
-    local values = form_values(body or "")
+    local values, parse_error = json_values(body or "")
+    if not values then
+      response("400 Bad Request", "application/json", json_error(parse_error))
+      return
+    end
     local address = tonumber(values.address or "")
-    local state = values.state and values.state:upper()
+    local direction = values.direction
+    local power = tonumber(values.power or "")
+    local state = direction == "red" and "R" or direction == "green" and "G"
     if not address or address ~= math.floor(address) or address < config.address_min or address > config.address_max then
       response("400 Bad Request", "application/json", json_error("address must be an integer in the configured range"))
-    elseif state ~= "R" and state ~= "G" then
-      response("400 Bad Request", "application/json", json_error("state must be R or G"))
+    elseif not state then
+      response("400 Bad Request", "application/json", json_error("direction must be red or green"))
+    elseif not power or power ~= math.floor(power) or (power ~= 0 and power ~= 1) then
+      response("400 Bad Request", "application/json", json_error("power must be integer 0 or 1"))
     else
-      local sent, send_error = send_accessory(address, state)
+      local sent, send_error = send_accessory(address, state, power)
       if not sent then
         io.stderr:write("turnout send failed: " .. tostring(send_error) .. "\n")
         response("503 Service Unavailable", "application/json", json_error("remote connection unavailable"))

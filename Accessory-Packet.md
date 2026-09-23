@@ -61,12 +61,13 @@ DLC     Loc-ID (4 bytes)       Stellung  Strom
         Loc-ID[7..0]
 ```
 
-Use these values:
+Use these values for the REST request's `direction` and `power` fields:
 
 ```text
-R -> Stellung = 0x00
-G -> Stellung = 0x01
-Strom         = 0x01
+red   -> Stellung = 0x00
+green -> Stellung = 0x01
+power 0 -> Strom = 0x00, switch off
+power 1 -> Strom = 0x01, switch on
 ```
 
 The protocol defines `Strom` as follows:
@@ -89,7 +90,7 @@ data[1] = byte(locID >> 16)
 data[2] = byte(locID >> 8)
 data[3] = byte(locID)
 data[4] = stellung
-data[5] = 0x01
+data[5] = power
 data[6] = 0x00
 data[7] = 0x00
 ```

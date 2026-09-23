@@ -56,10 +56,27 @@ because uhttpd does not pass arbitrary environment variables to CGI processes.
 It provides the standard CGI variables and routes `/api/turnout` as
 `PATH_INFO`.
 
-The web API is `POST /cgi-bin/weichenweb/api/turnout` with an
-`application/x-www-form-urlencoded` body containing `address` and `state`.
-`address` must be an integer from `ADDRESS_MIN` through `ADDRESS_MAX`; `state`
-must be `R` or `G`. A successful request returns `{"ok":true}`.
+## REST API And Swagger UI
+
+Open the interactive API documentation at
+`http://localhost:8080/cgi-bin/weichenweb/swagger`. Swagger UI loads its
+OpenAPI document from `/cgi-bin/weichenweb/swagger.json` and provides the
+`POST /api/turnout` operation.
+
+The REST endpoint accepts JSON with an integer `address`, `direction` set to
+`red` or `green`, and integer `power` set to `0` (off) or `1` (on):
+
+```sh
+curl -X POST http://localhost:8080/cgi-bin/weichenweb/api/turnout \
+  -H 'Content-Type: application/json' \
+  -d '{"address":3,"direction":"red","power":1}'
+```
+
+`address` must be from `ADDRESS_MIN` through `ADDRESS_MAX`. A successful
+request returns `{"ok":true}`. The Swagger UI page loads the Swagger UI
+JavaScript and CSS from `unpkg.com`, so the browser needs internet access for
+the interactive styling and controls; the OpenAPI document itself is served
+locally.
 
 The TCP connection is established for each CGI request that submits an action,
 uses a two-second timeout, and is closed when the request exits. A connection or
