@@ -1,8 +1,8 @@
 ## Purpose
 
-Build a Lua application that serves one web page for controlling turnouts. The
-application has a web server and a TCP client connection to the railway control
-system (the remote system).
+Build a Lua CGI application that serves one web page for controlling turnouts.
+An existing web server invokes the CGI script; the application also has a TCP
+client connection to the railway control system (the remote system).
 
 ## Web page
 
@@ -11,7 +11,7 @@ system (the remote system).
 - The page also contains a list of the ten most recently controlled turnout
   addresses at the top. Each list entry has its own red and green button.
 - The red and green controls represent the two turnout states. The exact
-  protocol value for each state is defined in `Accessory-packet.md`; the
+  protocol value for each state is defined in `Accessory-Packet.md`; the
   application must use one consistent mapping for all controls.
 - A control is submitted only when its button is pressed. A submission contains
   the turnout address and the selected state.
@@ -23,30 +23,50 @@ system (the remote system).
   configuration value and must be documented when the packet protocol is
   implemented.
 
-## Server API
+## CGI and Server API
 
-The web server must expose an endpoint for submitting a turnout action. The
-endpoint accepts an address and a state, validates both values, and returns a
-success or error response. The endpoint and response format may be chosen by
-the implementation, but they must be documented and tested. Browser requests
-must not be able to submit arbitrary data as a packet.
+The application is invoked as a CGI script and must read the CGI environment and
+request body from standard input. It must write a CGI `Status` header,
+`Content-Type`, `Content-Length`, a blank line, and the response body. It must
+not bind a listening web-server socket or emit an HTTP status line.
+
+The reference deployment uses uhttpd with the script at
+`/cgi-bin/weichenweb`. `GET /cgi-bin/weichenweb` returns the HTML page. The
+browser submits actions to `POST /cgi-bin/weichenweb/api/turnout`; uhttpd must
+pass `/api/turnout` as `PATH_INFO`.
+
+The action endpoint accepts an `application/x-www-form-urlencoded` body with
+`address` and `state` fields. `address` must be an integer in the configured
+inclusive range, and `state` must be `R` or `G` (case-insensitive). A successful
+request returns `200 OK` and `{"ok":true}`. Invalid input returns `400 Bad
+Request`, a body-size violation returns `413 Payload Too Large`, an unavailable
+remote connection returns `503 Service Unavailable`, and a recent-state write
+failure returns `500 Internal Server Error`. Browser requests must not be able
+to submit arbitrary data as a packet.
 
 The recent-address list is server-side state so that all clients see the same
-list. It is held in memory unless persistence is explicitly added later. The
-list starts empty when the application starts.
+list. In CGI mode it is stored as one address per line in `RECENT_FILE`; the
+default is `/tmp/weichenweb-recent.txt`. The list starts empty when that file
+does not exist. After a successful remote send, the application writes a
+temporary file and renames it over the state file. Failed remote actions do not
+update the list.
 
 ## Remote connection
 
-- The server reads `remote-host.txt` at startup. The file must contain exactly
-  one non-empty line in `host:port` format, where `host` is the remote host
-  name or address and `port` is a numeric TCP port.
-- The server must reject missing, malformed, or ambiguous `remote-host.txt`
-  files and report the configuration error at startup. Whitespace surrounding
-  the host or port may be ignored, but additional non-empty lines are invalid.
-- The server maintains a TCP connection to the host and port from
-  `remote-host.txt`.
-- Packets sent and received on this connection must follow `Accessory-packet.md`.
-- `Accessory-packet.md` is a required project document and must define packet
+- Each CGI invocation reads the remote endpoint before handling the request. The
+  file must contain exactly one non-empty, trimmed line in `host:port` format,
+  where `host` is the remote host name or address and `port` is a numeric TCP
+  port from 1 through 65535.
+- The application must reject missing, malformed, or ambiguous endpoint files
+  and report the configuration error when the CGI process starts. Whitespace
+  at the beginning or end of the single line is ignored; additional non-empty
+  lines are invalid.
+- For each accepted action, the CGI process opens a TCP connection to the host
+  and port from the endpoint file, uses a two-second socket timeout, sends the
+  packet with a full-write loop, and closes the connection when the invocation
+  exits.
+- Packets sent and received on this connection must follow `Accessory-Packet.md`.
+- `Accessory-Packet.md` is a required project document and must define packet
   framing, the address and state encoding, acknowledgements, and error
   handling. No packet format may be inferred from this file alone.
 - When a valid action is submitted, the server sends exactly one packet for
@@ -54,18 +74,27 @@ list starts empty when the application starts.
 - If the connection is unavailable or the packet cannot be sent, the action
   fails with an error response and must not be added to the recent-address
   list.
-- The server must handle remote disconnects without crashing and must retry or
-  report the failure according to the reconnect policy documented with the
-  implementation.
+- A connection or send failure is logged and reported as `503`; the next CGI
+  invocation creates a new connection. There is no persistent reconnect loop.
 
 ## Configuration and operational requirements
 
-- The web-server bind address, web-server port, and valid turnout-address range
-  must be configurable.
+- The valid turnout-address range must be configurable. Web-server binding and
+  CGI URL configuration belong to the existing web server, not the Lua script.
+- The CAN UID used to construct the accessory packet must be configurable. The
+  implementation uses the `CAN_UID` environment variable and documents its
+  default.
 - `remote-host.txt` must be supplied with the application and must not contain
   credentials or other settings.
-- Configuration errors must be reported at startup.
+- In the uhttpd development container, `remote-host.txt` is copied to
+  `/www/cgi-bin/remote-host.txt` because uhttpd does not pass arbitrary
+  environment variables to CGI processes. `REMOTE_HOST_FILE` and `RECENT_FILE`
+  remain available when the hosting CGI server supplies them.
+- Under uhttpd, the default paths and address range are used unless the server
+  is wrapped with a configuration mechanism that supplies those environment
+  variables. Configuration errors must be reported when the CGI process starts.
 - The application must log connection failures and failed submissions without
   logging sensitive configuration values.
-- The application must run on Lua 5.4, as specified by the development
-  container.
+- The application must run on Lua 5.1 and LuaSocket as supplied by the OpenWrt
+  21.02.7 development container. The implementation must not use Lua 5.2+
+  syntax or native bitwise operators.

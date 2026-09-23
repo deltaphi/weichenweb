@@ -1,30 +1,33 @@
-FROM debian:bookworm-slim
+FROM openwrt/rootfs:x86_64-21.02.7
 
 ARG USERNAME=lua
 ARG UID=1000
 ARG GID=1000
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PATH="/home/${USERNAME}/.local/bin:${PATH}"
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        build-essential \
-        ca-certificates \
+RUN mkdir -p /var/lock \
+    && opkg update \
+    && opkg install \
+        bash \
+        ca-bundle \
         git \
-        luarocks \
-        lua5.4 \
+        lua \
+        luac \
+        luasocket \
+        shadow-groupadd \
+        shadow-useradd \
         sudo \
-    && ln -s /usr/bin/lua5.4 /usr/local/bin/lua \
-    && ln -s /usr/bin/luac5.4 /usr/local/bin/luac \
-    && rm -rf /var/lib/apt/lists/*
+        uhttpd \
+    && rm -rf /var/opkg-lists/*
 
-RUN groupadd --gid "${GID}" "${USERNAME}" \
-    && useradd --uid "${UID}" --gid "${GID}" --create-home --shell /bin/bash "${USERNAME}" \
+RUN groupadd -g "${GID}" "${USERNAME}" \
+    && useradd -u "${UID}" -g "${USERNAME}" -m -s /bin/bash "${USERNAME}" \
     && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > "/etc/sudoers.d/${USERNAME}" \
     && chmod 0440 "/etc/sudoers.d/${USERNAME}"
+
+COPY container-start.sh /usr/local/bin/container-start.sh
+RUN chmod 0755 /usr/local/bin/container-start.sh
 
 WORKDIR /workspace
 USER ${USERNAME}
 
-CMD ["bash"]
+CMD ["/usr/local/bin/container-start.sh"]

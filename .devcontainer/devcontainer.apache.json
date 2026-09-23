@@ -1,7 +1,7 @@
 {
   "name": "Lua Development",
   "build": {
-    "dockerfile": "../Dockerfile",
+    "dockerfile": "../Dockerfile.apache",
     "context": "..",
     "args": {
       "USERNAME": "lua",
@@ -13,13 +13,14 @@
   "workspaceFolder": "/workspace",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "forwardPorts": [8080],
+  "postStartCommand": "sudo cp /workspace/main.lua /usr/lib/cgi-bin/weichenweb && sudo chmod +x /usr/lib/cgi-bin/weichenweb && sudo apachectl -k start",
   "customizations": {
     "vscode": {
       "extensions": [
         "sumneko.lua"
       ],
       "settings": {
-        "Lua.runtime.version": "Lua 5.1",
+        "Lua.runtime.version": "Lua 5.4",
         "Lua.workspace.checkThirdParty": false
       }
     }

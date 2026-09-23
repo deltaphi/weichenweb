@@ -1,0 +1,21 @@
+Listen 8080
+
+<VirtualHost *:8080>
+    ServerName localhost
+    ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
+
+    <Directory "/usr/lib/cgi-bin">
+        Options +ExecCGI +FollowSymLinks
+        AllowOverride None
+        Require all granted
+        AcceptPathInfo On
+        SetHandler cgi-script
+    </Directory>
+
+    <Location "/cgi-bin/">
+        SetHandler cgi-script
+    </Location>
+
+    SetEnv REMOTE_HOST_FILE /workspace/remote-host.txt
+    SetEnv RECENT_FILE /tmp/weichenweb-recent.txt
+</VirtualHost>

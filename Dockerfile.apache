@@ -1,0 +1,37 @@
+FROM debian:bookworm-slim
+
+ARG USERNAME=lua
+ARG UID=1000
+ARG GID=1000
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH="/home/${USERNAME}/.local/bin:${PATH}"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        apache2 \
+        build-essential \
+        ca-certificates \
+        git \
+        luarocks \
+        lua5.4 \
+        lua-socket \
+        sudo \
+    && ln -s /usr/bin/lua5.4 /usr/local/bin/lua \
+    && ln -s /usr/bin/luac5.4 /usr/local/bin/luac \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY apache-vhost.conf.apache /etc/apache2/sites-available/weichenweb.conf
+RUN a2enmod cgid \
+    && a2dissite 000-default.conf \
+    && a2ensite weichenweb.conf
+
+RUN groupadd --gid "${GID}" "${USERNAME}" \
+    && useradd --uid "${UID}" --gid "${GID}" --create-home --shell /bin/bash "${USERNAME}" \
+    && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > "/etc/sudoers.d/${USERNAME}" \
+    && chmod 0440 "/etc/sudoers.d/${USERNAME}"
+
+WORKDIR /workspace
+USER ${USERNAME}
+
+CMD ["bash"]
