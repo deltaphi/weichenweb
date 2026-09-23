@@ -6,10 +6,13 @@ client connection to the railway control system (the remote system).
 
 ## Web page
 
-- The page contains a numeric turnout-address input at the bottom.
+- The page has no visible headings. Its numeric turnout-address input and
+  red/green controls remain pinned at the bottom of the viewport.
 - The input has one red button and one green button beside it.
-- The page also contains a list of the ten most recently controlled turnout
-  addresses at the top. Each list entry has its own red and green button.
+- The page also contains a list of up to ten controlled turnout addresses above
+  the address controls. The list scrolls independently without moving the
+  address controls. Each list entry has its own red and green button.
+- When empty, the address input displays the grey placeholder `address`.
 - The red and green controls represent the two turnout states. The exact
   protocol value for each state is defined in `Accessory-Packet.md`; the
   application must use one consistent mapping for all controls.
@@ -117,3 +120,5 @@ construction.
 - The application must run on Lua 5.1 and nixio as supplied by the OpenWrt
   21.02.7 development container. The implementation must not use Lua 5.2+
   syntax or native bitwise operators.
+- TCP connections use nixio: connect is nonblocking with a two-second poll
+  timeout, and socket sends use a two-second send timeout and a full-write loop.

@@ -88,6 +88,12 @@ The cookie is updated only after a successful turnout action, so the website
 does not require a writable server filesystem. The list is per browser and is
 not used to authorize or construct packets.
 
-The TCP connection is established for each CGI request that submits an action,
-uses a two-second timeout, and is closed when the request exits. A connection or
-send failure returns CGI status `503`; the next request tries to connect again.
+The page has no visible headings. The recent-turnout list scrolls independently
+above the address input and buttons, which stay pinned at the bottom of the
+viewport. An empty address input shows the placeholder `address`.
+
+The TCP connection is established for each CGI request that submits an action
+using nixio. Connection setup has a two-second timeout; sends use a two-second
+socket timeout and a full-write loop. The connection is closed when the request
+exits. A connection or send failure returns CGI status `503`; the next request
+tries to connect again.
