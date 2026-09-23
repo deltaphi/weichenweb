@@ -50,42 +50,46 @@ local config = {
   address_max = configuration_number("ADDRESS_MAX", 1024, 1, 1024),
   uid = configuration_number("CAN_UID", "0x00004711", 0, 0xffffffff),
   remote_file = os.getenv("REMOTE_HOST_FILE") or "/www/cgi-bin/remote-host.txt",
-  recent_file = os.getenv("RECENT_FILE") or "/tmp/weichenweb-recent.txt",
 }
 if config.address_min > config.address_max then error("ADDRESS_MIN must not be greater than ADDRESS_MAX") end
 config.remote_host, config.remote_port = read_remote_host(config.remote_file)
 
-local function read_recent()
-  local file = io.open(config.recent_file, "r")
-  if not file then return {} end
+local function read_recent_cookie()
   local addresses = {}
-  for line in file:lines() do
-    local address = tonumber(trim(line))
+  local seen = {}
+  local cookie_value
+  for pair in (os.getenv("HTTP_COOKIE") or ""):gmatch("[^;]+") do
+    local name, value = pair:match("^%s*([^=]+)=([^=]*)%s*$")
+    if name == "weichenweb_recent" then cookie_value = value; break end
+  end
+  for value in (cookie_value or ""):gmatch("[^,]+") do
+    local address = tonumber(value)
     if address and address == math.floor(address)
-        and address >= config.address_min and address <= config.address_max then
+        and address >= config.address_min and address <= config.address_max
+        and not seen[address] then
       addresses[#addresses + 1] = address
+      seen[address] = true
       if #addresses == 10 then break end
     end
   end
-  file:close()
   return addresses
 end
 
-local recent = read_recent()
+local recent = read_recent_cookie()
 local function remember(address)
   for index, value in ipairs(recent) do
     if value == address then table.remove(recent, index); break end
   end
   table.insert(recent, 1, address)
   while #recent > 10 do table.remove(recent) end
-  local temporary = config.recent_file .. ".tmp"
-  local file, open_error = io.open(temporary, "w")
-  if not file then return nil, open_error end
-  for _, value in ipairs(recent) do file:write(value, "\n") end
-  file:close()
-  local renamed, rename_error = os.rename(temporary, config.recent_file)
-  if not renamed then return nil, rename_error end
-  return true
+end
+
+local function recent_cookie()
+  local values = {}
+  for _, address in ipairs(recent) do values[#values + 1] = tostring(address) end
+  local script_name = os.getenv("SCRIPT_NAME") or "/cgi-bin/weichenweb"
+  return "weichenweb_recent=" .. table.concat(values, ",")
+    .. "; Path=" .. script_name .. "; Max-Age=31536000; SameSite=Lax"
 end
 
 local function int_bytes(value)
@@ -246,7 +250,7 @@ local function swagger_spec()
         "summary":"Switch a turnout",
         "operationId":"switchTurnout",
         "requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/TurnoutRequest"},"example":{"address":3,"direction":"red","power":1}}}},
-        "responses":{"200":{"description":"Packet sent","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Success"}}}},"400":{"description":"Invalid request"},"500":{"description":"Recent state unavailable"},"503":{"description":"Remote connection unavailable"}}
+        "responses":{"200":{"description":"Packet sent","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Success"}}}},"400":{"description":"Invalid request"},"503":{"description":"Remote connection unavailable"}}
       }
     }
   },
@@ -274,9 +278,10 @@ local function json_error(message)
   return '{"error":"' .. message:gsub('\\', '\\\\'):gsub('"', '\\"') .. '"}'
 end
 
-local function response(status, content_type, body)
+local function response(status, content_type, body, headers)
   io.write("Status: " .. status .. "\r\nContent-Type: " .. content_type
-    .. "\r\nContent-Length: " .. #body .. "\r\n\r\n" .. body)
+    .. "\r\nContent-Length: " .. #body .. "\r\n" .. (headers or "")
+    .. "\r\n" .. body)
 end
 
 local function handle_request()
@@ -318,13 +323,9 @@ local function handle_request()
         io.stderr:write("turnout send failed: " .. tostring(send_error) .. "\n")
         response("503 Service Unavailable", "application/json", json_error("remote connection unavailable"))
       else
-        local remembered, remember_error = remember(address)
-        if not remembered then
-          io.stderr:write("recent-address state failed: " .. tostring(remember_error) .. "\n")
-          response("500 Internal Server Error", "application/json", json_error("server state unavailable"))
-        else
-          response("200 OK", "application/json", '{"ok":true}')
-        end
+        remember(address)
+        response("200 OK", "application/json", '{"ok":true}',
+          "Set-Cookie: " .. recent_cookie() .. "\r\n")
       end
     end
   else

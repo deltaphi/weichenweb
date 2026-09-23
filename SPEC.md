@@ -50,9 +50,8 @@ field and power is mapped to its `Strom` field as defined in
 `Accessory-Packet.md`.
 
 A successful request returns `200 OK` and `{"ok":true}`. Invalid input returns
-`400 Bad Request`, a body-size violation returns `413 Payload Too Large`, an
-unavailable remote connection returns `503 Service Unavailable`, and a
-recent-state write failure returns `500 Internal Server Error`. Browser
+`400 Bad Request`, a body-size violation returns `413 Payload Too Large`, and
+an unavailable remote connection returns `503 Service Unavailable`. Browser
 requests must not be able to submit arbitrary data as a packet.
 
 `GET /cgi-bin/weichenweb/swagger` serves the Swagger UI page and
@@ -60,12 +59,12 @@ requests must not be able to submit arbitrary data as a packet.
 the REST endpoint. The UI references the Swagger UI distribution from
 `unpkg.com`; the OpenAPI document is served by the application.
 
-The recent-address list is server-side state so that all clients see the same
-list. In CGI mode it is stored as one address per line in `RECENT_FILE`; the
-default is `/tmp/weichenweb-recent.txt`. The list starts empty when that file
-does not exist. After a successful remote send, the application writes a
-temporary file and renames it over the state file. Failed remote actions do not
-update the list.
+The website's recent-address list is client-side state in the
+`weichenweb_recent` cookie. The cookie contains at most ten validated addresses
+in most-recently-used order. After a successful remote send, the response
+returns a `Set-Cookie` header with the updated list. Failed remote actions do
+not update the cookie. Each browser has its own list, and the cookie is only
+display state; it is not trusted for authorization or packet construction.
 
 ## Remote connection
 
@@ -105,8 +104,8 @@ update the list.
   settings. If it is absent, the default endpoint is `localhost:15731`.
 - In the uhttpd development container, `remote-host.txt` is copied to
   `/www/cgi-bin/remote-host.txt` because uhttpd does not pass arbitrary
-  environment variables to CGI processes. `REMOTE_HOST_FILE` and `RECENT_FILE`
-  remain available when the hosting CGI server supplies them.
+  environment variables to CGI processes. `REMOTE_HOST_FILE` remains available
+  when the hosting CGI server supplies it.
 - Under uhttpd, the default paths and address range are used unless the server
   is wrapped with a configuration mechanism that supplies those environment
   variables. Configuration errors must be reported when the CGI process starts.
