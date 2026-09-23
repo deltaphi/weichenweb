@@ -84,10 +84,13 @@ locally.
 The website stores up to 50 controlled addresses in FIFO order in the
 `weichenweb_recent` browser cookie. Controlling a listed turnout does not move
 it; new addresses are appended and the oldest address is dropped when full.
-The cookie is updated only after a successful turnout action, so the website
+The list remains FIFO internally. The dropdown at the top left selects `FIFO`
+or `by Address` for display; `by Address` is the default and is saved in the
+`weichenweb_order` cookie. The `Clear history` button at the top of the page
+asks for confirmation, then clears the history cookie for that browser. The
+history cookie is updated after successful turnout actions, so the website
 does not require a writable server filesystem. The list is per browser and is
-not used to authorize or construct packets. The `Clear history` button at the
-top of the page asks for confirmation, then clears the cookie for that browser.
+not used to authorize or construct packets.
 
 The page has no visible headings. The recent-turnout list scrolls independently
 above the address input and buttons, which stay pinned at the bottom of the

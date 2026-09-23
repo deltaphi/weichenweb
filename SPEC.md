@@ -14,6 +14,9 @@ client connection to the railway control system (the remote system).
   address controls. Each list entry has its own red and green button.
 - A `Clear history` button appears at the top of the page. It asks for
   confirmation before clearing the browser's recent-address cookie.
+- A dropdown at the top left selects `FIFO` or `by Address`. `by Address` is
+  the default. This setting controls display order only; the underlying history
+  remains FIFO.
 - When empty, the address input displays the grey placeholder `address`.
 - The red and green controls represent the two turnout states. The exact
   protocol value for each state is defined in `Accessory-Packet.md`; the
@@ -66,13 +69,17 @@ the REST endpoint. The UI references the Swagger UI distribution from
 
 The website's controlled-address list is client-side state in the
 `weichenweb_recent` cookie. The cookie contains at most 50 validated addresses
-in FIFO order, oldest first. After a successful remote send, a previously
-unlisted address is appended; controlling an address already in the list does
-not change its position. When full, adding a new address removes the oldest.
-The response returns a `Set-Cookie` header with the updated list. Failed remote
-actions do not update the cookie. Each browser has its own list, and the cookie
-is only display state; it is not trusted for authorization or packet
-construction.
+in FIFO order, oldest first, regardless of display order. After a successful
+remote send, a previously unlisted address is appended; controlling an address
+already in the list does not change its position. When full, adding a new
+address removes the oldest. The response returns a `Set-Cookie` header with the
+updated list. Failed remote actions do not update the cookie. Each browser has
+its own list, and the cookie is only display state; it is not trusted for
+authorization or packet construction.
+
+The display selection is stored separately in the `weichenweb_order` cookie as
+`fifo` or `address`. The default is `address`; in that mode the page sorts a
+copy of the FIFO list for display and does not modify its stored order.
 
 ## Remote connection
 

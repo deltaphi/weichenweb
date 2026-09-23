@@ -54,15 +54,18 @@ local config = {
 if config.address_min > config.address_max then error("ADDRESS_MIN must not be greater than ADDRESS_MAX") end
 config.remote_host, config.remote_port = read_remote_host(config.remote_file)
 
+local function read_cookie(name)
+  for pair in (os.getenv("HTTP_COOKIE") or ""):gmatch("[^;]+") do
+    local cookie_name, value = pair:match("^%s*([^=]+)=([^=]*)%s*$")
+    if cookie_name == name then return value end
+  end
+  return nil
+end
+
 local function read_recent_cookie()
   local addresses = {}
   local seen = {}
-  local cookie_value
-  for pair in (os.getenv("HTTP_COOKIE") or ""):gmatch("[^;]+") do
-    local name, value = pair:match("^%s*([^=]+)=([^=]*)%s*$")
-    if name == "weichenweb_recent" then cookie_value = value; break end
-  end
-  for value in (cookie_value or ""):gmatch("[^,]+") do
+  for value in (read_cookie("weichenweb_recent") or ""):gmatch("[^,]+") do
     local address = tonumber(value)
     if address and address == math.floor(address)
         and address >= config.address_min and address <= config.address_max
@@ -186,8 +189,12 @@ local function html_escape(value)
 end
 
 local function page()
+  local display_order = read_cookie("weichenweb_order") == "fifo" and "fifo" or "address"
+  local display_addresses = {}
+  for index, address in ipairs(recent) do display_addresses[index] = address end
+  if display_order == "address" then table.sort(display_addresses) end
   local entries = {}
-  for _, address in ipairs(recent) do
+  for _, address in ipairs(display_addresses) do
     entries[#entries + 1] = string.format(
       '<li><span>Turnout %s</span><button class="red" onclick="sendTurnout(%d, \'red\')">Red</button><button class="green" onclick="sendTurnout(%d, \'green\')">Green</button></li>',
       html_escape(address), address, address)
@@ -198,11 +205,11 @@ local function page()
   local script_path = os.getenv("SCRIPT_NAME") or "/cgi-bin/weichenweb"
   return [[<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Turnout control</title>
-<style>*{box-sizing:border-box}html,body{height:100%;margin:0}body{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;font:16px system-ui,sans-serif;color:#17202a}.recent{flex:1;min-height:0;overflow-y:auto;padding:.5rem 1rem;max-width:44rem;width:100%;margin:0 auto}.history-tools{display:flex;justify-content:flex-end;margin-bottom:.5rem}.recent-list{padding:0;list-style:none;margin:0}li{display:flex;gap:.5rem;align-items:center;margin:.6rem 0}li span{flex:1}button{border:0;border-radius:.35rem;color:#fff;padding:.65rem 1rem;font-weight:600;cursor:pointer}.red{background:#c0392b}.green{background:#16803c}.clear{background:#59636e}.entry{flex:none;display:flex;gap:.5rem;align-items:center;justify-content:center;padding:.75rem 1rem calc(.75rem + env(safe-area-inset-bottom));border-top:1px solid #ddd;background:#fff}.entry input{font:inherit;padding:.6rem;width:10rem;min-width:0}.entry input::placeholder{color:#888;opacity:1}</style>
-</head><body><main class="recent"><div class="history-tools"><button class="clear" onclick="clearHistory()">Clear history</button></div><ul class="recent-list">]] .. list .. [[</ul></main>
+<style>*{box-sizing:border-box}html,body{height:100%;margin:0}body{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;font:16px system-ui,sans-serif;color:#17202a}.recent{flex:1;min-height:0;overflow-y:auto;padding:.5rem 1rem;max-width:44rem;width:100%;margin:0 auto}.history-tools{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem}.history-tools select{font:inherit;padding:.45rem}.recent-list{padding:0;list-style:none;margin:0}li{display:flex;gap:.5rem;align-items:center;margin:.6rem 0}li span{flex:1}button{border:0;border-radius:.35rem;color:#fff;padding:.65rem 1rem;font-weight:600;cursor:pointer}.red{background:#c0392b}.green{background:#16803c}.clear{background:#59636e}.entry{flex:none;display:flex;gap:.5rem;align-items:center;justify-content:center;padding:.75rem 1rem calc(.75rem + env(safe-area-inset-bottom));border-top:1px solid #ddd;background:#fff}.entry input{font:inherit;padding:.6rem;width:10rem;min-width:0}.entry input::placeholder{color:#888;opacity:1}</style>
+</head><body><main class="recent"><div class="history-tools"><select aria-label="History display order" onchange="changeHistoryOrder(this.value)"><option value="fifo" ]] .. (display_order == "fifo" and "selected" or "") .. [[>FIFO</option><option value="address" ]] .. (display_order == "address" and "selected" or "") .. [[>by Address</option></select><button class="clear" onclick="clearHistory()">Clear history</button></div><ul class="recent-list">]] .. list .. [[</ul></main>
 <div class="entry"><input id="address" type="number" min="]] .. config.address_min .. [[" max="]] .. config.address_max .. [[" step="1" placeholder="address" aria-label="address">
 <button class="red" onclick="submitAddress('red')">Red</button><button class="green" onclick="submitAddress('green')">Green</button></div>
- <script>async function sendTurnout(address,direction){const response=await fetch(']] .. html_escape(api_url) .. [[',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:Number(address),direction:direction,power:1})});const result=await response.json();if(!response.ok){alert(result.error);return;}location.reload();}function submitAddress(direction){const input=document.getElementById('address');if(!input.value){alert('Enter a turnout address.');return;}sendTurnout(input.value,direction);}function clearHistory(){if(!confirm('Clear the turnout history?'))return;document.cookie='weichenweb_recent=; Path=]] .. html_escape(script_path) .. [[; Max-Age=0; SameSite=Lax';location.reload();}</script></body></html>]]
+ <script>async function sendTurnout(address,direction){const response=await fetch(']] .. html_escape(api_url) .. [[',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:Number(address),direction:direction,power:1})});const result=await response.json();if(!response.ok){alert(result.error);return;}location.reload();}function submitAddress(direction){const input=document.getElementById('address');if(!input.value){alert('Enter a turnout address.');return;}sendTurnout(input.value,direction);}function changeHistoryOrder(order){document.cookie='weichenweb_order='+order+'; Path=]] .. html_escape(script_path) .. [[; Max-Age=31536000; SameSite=Lax';location.reload();}function clearHistory(){if(!confirm('Clear the turnout history?'))return;document.cookie='weichenweb_recent=; Path=]] .. html_escape(script_path) .. [[; Max-Age=0; SameSite=Lax';location.reload();}</script></body></html>]]
 end
 
 local function json_values(body)
