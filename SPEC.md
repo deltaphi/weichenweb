@@ -83,7 +83,7 @@ update the list.
   CGI URL configuration belong to the existing web server, not the Lua script.
 - The CAN UID used to construct the accessory packet must be configurable. The
   implementation uses the `CAN_UID` environment variable and documents its
-  default.
+  default as `0x00004711`.
 - `remote-host.txt` must be supplied with the application and must not contain
   credentials or other settings.
 - In the uhttpd development container, `remote-host.txt` is copied to

@@ -43,7 +43,7 @@ end
 local config = {
   address_min = configuration_number("ADDRESS_MIN", 1, 1, 1024),
   address_max = configuration_number("ADDRESS_MAX", 1024, 1, 1024),
-  uid = configuration_number("CAN_UID", "0x00000001", 0, 0xffffffff),
+  uid = configuration_number("CAN_UID", "0x00004711", 0, 0xffffffff),
   remote_file = os.getenv("REMOTE_HOST_FILE") or "/www/cgi-bin/remote-host.txt",
   recent_file = os.getenv("RECENT_FILE") or "/tmp/weichenweb-recent.txt",
 }
@@ -102,10 +102,16 @@ local function xor16(left, right)
   return result
 end
 
+local function accessory_hash(uid)
+  local raw_hash = xor16(math.floor(uid / 0x10000), uid % 0x10000)
+  -- CS1 uses bits 9..7 as 110; preserve the other hash bits.
+  return math.floor(raw_hash / 0x400) * 0x400 + raw_hash % 0x80 + 0x300
+end
+
 local function accessory_packet(address, state)
   local loc_id = 0x3000 + address - 1
   local state_byte = state == "R" and 0x00 or 0x01
-  local hash = xor16(math.floor(config.uid / 0x10000), config.uid % 0x10000)
+  local hash = accessory_hash(config.uid)
   local can_id = 4 * 2 ^ 25 + 0x16 * 2 ^ 16 + hash
   return int_bytes(can_id) .. string.char(0x06) .. int_bytes(loc_id)
     .. string.char(state_byte, 0x01, 0x00, 0x00)

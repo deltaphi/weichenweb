@@ -50,7 +50,7 @@ port from 1 through 65535. The server sends the 13-byte TCP packet described in
 The following environment variables are supported when supplied by the CGI
 server: `REMOTE_HOST_FILE` (default `/www/cgi-bin/remote-host.txt`),
 `RECENT_FILE` (default `/tmp/weichenweb-recent.txt`), `ADDRESS_MIN` (default
-`1`), `ADDRESS_MAX` (default `1024`), and `CAN_UID` (default `0x00000001`,
+`1`), `ADDRESS_MAX` (default `1024`), and `CAN_UID` (default `0x00004711`,
 decimal or hexadecimal). The reference uhttpd setup uses the default file paths
 because uhttpd does not pass arbitrary environment variables to CGI processes.
 It provides the standard CGI variables and routes `/api/turnout` as

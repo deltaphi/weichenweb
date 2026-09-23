@@ -118,12 +118,21 @@ canID =
 The hash is derived from the application's configured 32-bit UID:
 
 ```text
-hash = uint16(uid >> 16) XOR uint16(uid)
+rawHash = uint16(uid >> 16) XOR uint16(uid)
 ```
 
-The hash must then have the protocol's CS1-disambiguation bits applied and must
-not collide with another active participant. The `0x4711` value in the PDF
-examples is an example hash, not necessarily a universal value.
+For CS1, bits 9..7 of the hash are the communication-area selector. They must
+be `110` (bit 9 set, bit 8 set, bit 7 clear). Preserve all other bits of the
+raw hash and apply that selector:
+
+```text
+hash = (rawHash & 0xFC00) | (rawHash & 0x007F) | 0x0300
+```
+
+The resulting hash must not collide with another active participant. The
+`0x4711` value used in the PDF examples is a valid example hash. With the
+application's default `CAN_UID=0x00004711`, the raw hash is `0x4711` and the
+CS1-adjusted hash remains `0x4711`.
 
 Write the resulting identifier in big-endian order into packet bytes `0..3`.
 
@@ -140,8 +149,7 @@ packet[5..12] = data[0..7]
 
 ## Example
 
-For user-facing address `3`, direction `R`, priority `4`, and example hash
-`0x4711`:
+For user-facing address `3`, direction `R`, priority `4`, and hash `0x4711`:
 
 ```text
 locID = 0x00003002
