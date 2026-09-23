@@ -15,9 +15,9 @@ client connection to the railway control system (the remote system).
   application must use one consistent mapping for all controls.
 - A control is submitted only when its button is pressed. A submission contains
   the turnout address and the selected state.
-- After a successful submission, the address becomes the most recently used
-  address. Existing entries are moved to the front rather than duplicated; the
-  list is limited to ten entries. The order is most-recently-used first.
+- After a successful submission, a new address is appended to the FIFO list.
+  Existing entries keep their current position and are not duplicated. The
+  list is limited to ten entries, dropping the oldest entry when full.
 - Invalid or missing addresses must not result in a packet being sent. The page
   must report the validation error to the user. The valid numeric range is a
   configuration value and must be documented when the packet protocol is
@@ -59,12 +59,15 @@ requests must not be able to submit arbitrary data as a packet.
 the REST endpoint. The UI references the Swagger UI distribution from
 `unpkg.com`; the OpenAPI document is served by the application.
 
-The website's recent-address list is client-side state in the
+The website's controlled-address list is client-side state in the
 `weichenweb_recent` cookie. The cookie contains at most ten validated addresses
-in most-recently-used order. After a successful remote send, the response
-returns a `Set-Cookie` header with the updated list. Failed remote actions do
-not update the cookie. Each browser has its own list, and the cookie is only
-display state; it is not trusted for authorization or packet construction.
+in FIFO order, oldest first. After a successful remote send, a previously
+unlisted address is appended; controlling an address already in the list does
+not change its position. When full, adding a new address removes the oldest.
+The response returns a `Set-Cookie` header with the updated list. Failed remote
+actions do not update the cookie. Each browser has its own list, and the cookie
+is only display state; it is not trusted for authorization or packet
+construction.
 
 ## Remote connection
 

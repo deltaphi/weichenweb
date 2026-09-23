@@ -81,11 +81,12 @@ JavaScript and CSS from `unpkg.com`, so the browser needs internet access for
 the interactive styling and controls; the OpenAPI document itself is served
 locally.
 
-The website stores its ten most recently controlled addresses in the
-`weichenweb_recent` browser cookie. The cookie is updated only after a
-successful turnout action, so the website does not require a writable server
-filesystem. The list is per browser and is not used to authorize or construct
-packets.
+The website stores up to ten controlled addresses in FIFO order in the
+`weichenweb_recent` browser cookie. Controlling a listed turnout does not move
+it; new addresses are appended and the oldest address is dropped when full.
+The cookie is updated only after a successful turnout action, so the website
+does not require a writable server filesystem. The list is per browser and is
+not used to authorize or construct packets.
 
 The TCP connection is established for each CGI request that submits an action,
 uses a two-second timeout, and is closed when the request exits. A connection or

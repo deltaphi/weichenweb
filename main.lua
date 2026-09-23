@@ -77,11 +77,11 @@ end
 
 local recent = read_recent_cookie()
 local function remember(address)
-  for index, value in ipairs(recent) do
-    if value == address then table.remove(recent, index); break end
+  for _, value in ipairs(recent) do
+    if value == address then return end
   end
-  table.insert(recent, 1, address)
-  while #recent > 10 do table.remove(recent) end
+  table.insert(recent, address)
+  while #recent > 10 do table.remove(recent, 1) end
 end
 
 local function recent_cookie()
