@@ -112,6 +112,6 @@ update the list.
   variables. Configuration errors must be reported when the CGI process starts.
 - The application must log connection failures and failed submissions without
   logging sensitive configuration values.
-- The application must run on Lua 5.1 and LuaSocket as supplied by the OpenWrt
+- The application must run on Lua 5.1 and nixio as supplied by the OpenWrt
   21.02.7 development container. The implementation must not use Lua 5.2+
   syntax or native bitwise operators.

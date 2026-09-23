@@ -3,7 +3,7 @@
 ## Run In The Dev Container
 
 The devcontainer uses `openwrt/rootfs:x86_64-21.02.7` and installs uhttpd, Lua
-5.1, LuaSocket, Bash, Git, and sudo. Its startup command copies the CGI script
+5.1, nixio, Bash, Git, and sudo. Its startup command copies the CGI script
 and remote endpoint into uhttpd's document root and starts uhttpd on port 8080.
 
 To use a remote endpoint other than the default `localhost:15731`, copy and

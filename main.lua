@@ -1,6 +1,6 @@
 #!/usr/bin/lua
 
-local socket = require("socket")
+local nixio = require("nixio")
 
 local function trim(value)
   return value:match("^%s*(.-)%s*$")
@@ -127,23 +127,48 @@ local function close_remote()
   if remote_socket then remote_socket:close(); remote_socket = nil end
 end
 
+local function wait_for_socket(connection, event)
+  local count = nixio.poll({{
+    fd = connection,
+    events = nixio.poll_flags(event),
+  }}, 2000)
+  return count and count > 0
+end
+
 local function send_all(connection, data)
   local position = 1
   while position <= #data do
-    local sent, send_error, partial = connection:send(data, position)
-    position = position + (sent or partial or 0)
+    local sent, send_error = connection:send(data:sub(position))
     if not sent then return nil, send_error end
+    position = position + sent
   end
   return true
 end
 
 local function send_accessory(address, state, power)
   if not remote_socket then
-    local connection, socket_error = socket.tcp()
+    local connection, socket_error = nixio.socket("inet", "stream")
     if not connection then return nil, socket_error end
-    connection:settimeout(2)
+    connection:setblocking(false)
     local connected, connect_error = connection:connect(config.remote_host, config.remote_port)
-    if not connected then connection:close(); return nil, connect_error end
+    if not connected then
+      if connect_error ~= nixio.const_sock.EINPROGRESS
+          and connect_error ~= nixio.const_sock.EWOULDBLOCK then
+        connection:close()
+        return nil, nixio.strerror(connect_error)
+      end
+      if not wait_for_socket(connection, "out") then
+        connection:close()
+        return nil, "connection timeout"
+      end
+      local socket_error = connection:getopt("socket", "error")
+      if socket_error and socket_error ~= 0 then
+        connection:close()
+        return nil, nixio.strerror(socket_error)
+      end
+    end
+    connection:setblocking(true)
+    connection:setopt("socket", "sndtimeo", 2)
     remote_socket = connection
   end
   local sent, send_error = send_all(remote_socket, accessory_packet(address, state, power))

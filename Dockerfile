@@ -12,7 +12,7 @@ RUN mkdir -p /var/lock \
         git \
         lua \
         luac \
-        luasocket \
+        luci-lib-nixio \
         shadow-groupadd \
         shadow-useradd \
         sudo \
