@@ -185,7 +185,7 @@ local function page()
   local entries = {}
   for _, address in ipairs(recent) do
     entries[#entries + 1] = string.format(
-      '<li><span>Turnout %s</span><button class="red" onclick="sendTurnout(%d, \'R\')">Red</button><button class="green" onclick="sendTurnout(%d, \'G\')">Green</button></li>',
+      '<li><span>Turnout %s</span><button class="red" onclick="sendTurnout(%d, \'red\')">Red</button><button class="green" onclick="sendTurnout(%d, \'green\')">Green</button></li>',
       html_escape(address), address, address)
   end
   local list = #entries > 0 and table.concat(entries, "\n") or "<li>No turnouts controlled yet.</li>"
@@ -196,7 +196,7 @@ local function page()
 <style>body{font:16px system-ui,sans-serif;max-width:42rem;margin:2rem auto;padding:0 1rem;color:#17202a}ul{padding:0;list-style:none}li{display:flex;gap:.5rem;align-items:center;margin:.6rem 0}li span{flex:1}button{border:0;border-radius:.35rem;color:#fff;padding:.65rem 1rem;font-weight:600;cursor:pointer}.red{background:#c0392b}.green{background:#16803c}input{font-size:1rem;padding:.6rem;width:8rem}.entry{border-top:1px solid #ddd;margin-top:2rem;padding-top:1rem}</style>
 </head><body><h1>Turnout control</h1><h2>Recent turnouts</h2><ul>]] .. list .. [[</ul>
 <div class="entry"><h2>Address</h2><input id="address" type="number" min="]] .. config.address_min .. [[" max="]] .. config.address_max .. [[" step="1">
-<button class="red" onclick="submitAddress('R')">Red</button><button class="green" onclick="submitAddress('G')">Green</button></div>
+<button class="red" onclick="submitAddress('red')">Red</button><button class="green" onclick="submitAddress('green')">Green</button></div>
  <script>async function sendTurnout(address,direction){const response=await fetch(']] .. html_escape(api_url) .. [[',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:Number(address),direction:direction,power:1})});const result=await response.json();if(!response.ok){alert(result.error);return;}location.reload();}function submitAddress(direction){const input=document.getElementById('address');if(!input.value){alert('Enter a turnout address.');return;}sendTurnout(input.value,direction);}</script></body></html>]]
 end
 
