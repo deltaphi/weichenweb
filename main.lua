@@ -69,7 +69,7 @@ local function read_recent_cookie()
         and not seen[address] then
       addresses[#addresses + 1] = address
       seen[address] = true
-      if #addresses == 10 then break end
+      if #addresses == 50 then break end
     end
   end
   return addresses
@@ -81,7 +81,7 @@ local function remember(address)
     if value == address then return end
   end
   table.insert(recent, address)
-  while #recent > 10 do table.remove(recent, 1) end
+  while #recent > 50 do table.remove(recent, 1) end
 end
 
 local function recent_cookie()
@@ -195,13 +195,14 @@ local function page()
   local list = #entries > 0 and table.concat(entries, "\n") or "<li>No turnouts controlled yet.</li>"
   local script_name = os.getenv("SCRIPT_NAME") or ""
   local api_url = script_name .. "/api/turnout"
+  local script_path = os.getenv("SCRIPT_NAME") or "/cgi-bin/weichenweb"
   return [[<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Turnout control</title>
-<style>*{box-sizing:border-box}html,body{height:100%;margin:0}body{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;font:16px system-ui,sans-serif;color:#17202a}.recent{flex:1;min-height:0;overflow-y:auto;padding:.5rem 1rem;max-width:44rem;width:100%;margin:0 auto}.recent-list{padding:0;list-style:none;margin:0}li{display:flex;gap:.5rem;align-items:center;margin:.6rem 0}li span{flex:1}button{border:0;border-radius:.35rem;color:#fff;padding:.65rem 1rem;font-weight:600;cursor:pointer}.red{background:#c0392b}.green{background:#16803c}.entry{flex:none;display:flex;gap:.5rem;align-items:center;justify-content:center;padding:.75rem 1rem calc(.75rem + env(safe-area-inset-bottom));border-top:1px solid #ddd;background:#fff}.entry input{font:inherit;padding:.6rem;width:10rem;min-width:0}.entry input::placeholder{color:#888;opacity:1}</style>
-</head><body><main class="recent"><ul class="recent-list">]] .. list .. [[</ul></main>
+<style>*{box-sizing:border-box}html,body{height:100%;margin:0}body{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;font:16px system-ui,sans-serif;color:#17202a}.recent{flex:1;min-height:0;overflow-y:auto;padding:.5rem 1rem;max-width:44rem;width:100%;margin:0 auto}.history-tools{display:flex;justify-content:flex-end;margin-bottom:.5rem}.recent-list{padding:0;list-style:none;margin:0}li{display:flex;gap:.5rem;align-items:center;margin:.6rem 0}li span{flex:1}button{border:0;border-radius:.35rem;color:#fff;padding:.65rem 1rem;font-weight:600;cursor:pointer}.red{background:#c0392b}.green{background:#16803c}.clear{background:#59636e}.entry{flex:none;display:flex;gap:.5rem;align-items:center;justify-content:center;padding:.75rem 1rem calc(.75rem + env(safe-area-inset-bottom));border-top:1px solid #ddd;background:#fff}.entry input{font:inherit;padding:.6rem;width:10rem;min-width:0}.entry input::placeholder{color:#888;opacity:1}</style>
+</head><body><main class="recent"><div class="history-tools"><button class="clear" onclick="clearHistory()">Clear history</button></div><ul class="recent-list">]] .. list .. [[</ul></main>
 <div class="entry"><input id="address" type="number" min="]] .. config.address_min .. [[" max="]] .. config.address_max .. [[" step="1" placeholder="address" aria-label="address">
 <button class="red" onclick="submitAddress('red')">Red</button><button class="green" onclick="submitAddress('green')">Green</button></div>
- <script>async function sendTurnout(address,direction){const response=await fetch(']] .. html_escape(api_url) .. [[',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:Number(address),direction:direction,power:1})});const result=await response.json();if(!response.ok){alert(result.error);return;}location.reload();}function submitAddress(direction){const input=document.getElementById('address');if(!input.value){alert('Enter a turnout address.');return;}sendTurnout(input.value,direction);}</script></body></html>]]
+ <script>async function sendTurnout(address,direction){const response=await fetch(']] .. html_escape(api_url) .. [[',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:Number(address),direction:direction,power:1})});const result=await response.json();if(!response.ok){alert(result.error);return;}location.reload();}function submitAddress(direction){const input=document.getElementById('address');if(!input.value){alert('Enter a turnout address.');return;}sendTurnout(input.value,direction);}function clearHistory(){if(!confirm('Clear the turnout history?'))return;document.cookie='weichenweb_recent=; Path=]] .. html_escape(script_path) .. [[; Max-Age=0; SameSite=Lax';location.reload();}</script></body></html>]]
 end
 
 local function json_values(body)

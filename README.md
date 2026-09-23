@@ -81,12 +81,13 @@ JavaScript and CSS from `unpkg.com`, so the browser needs internet access for
 the interactive styling and controls; the OpenAPI document itself is served
 locally.
 
-The website stores up to ten controlled addresses in FIFO order in the
+The website stores up to 50 controlled addresses in FIFO order in the
 `weichenweb_recent` browser cookie. Controlling a listed turnout does not move
 it; new addresses are appended and the oldest address is dropped when full.
 The cookie is updated only after a successful turnout action, so the website
 does not require a writable server filesystem. The list is per browser and is
-not used to authorize or construct packets.
+not used to authorize or construct packets. The `Clear history` button at the
+top of the page asks for confirmation, then clears the cookie for that browser.
 
 The page has no visible headings. The recent-turnout list scrolls independently
 above the address input and buttons, which stay pinned at the bottom of the

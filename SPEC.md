@@ -9,9 +9,11 @@ client connection to the railway control system (the remote system).
 - The page has no visible headings. Its numeric turnout-address input and
   red/green controls remain pinned at the bottom of the viewport.
 - The input has one red button and one green button beside it.
-- The page also contains a list of up to ten controlled turnout addresses above
+- The page also contains a list of up to 50 controlled turnout addresses above
   the address controls. The list scrolls independently without moving the
   address controls. Each list entry has its own red and green button.
+- A `Clear history` button appears at the top of the page. It asks for
+  confirmation before clearing the browser's recent-address cookie.
 - When empty, the address input displays the grey placeholder `address`.
 - The red and green controls represent the two turnout states. The exact
   protocol value for each state is defined in `Accessory-Packet.md`; the
@@ -20,7 +22,7 @@ client connection to the railway control system (the remote system).
   the turnout address and the selected state.
 - After a successful submission, a new address is appended to the FIFO list.
   Existing entries keep their current position and are not duplicated. The
-  list is limited to ten entries, dropping the oldest entry when full.
+  list is limited to 50 entries, dropping the oldest entry when full.
 - Invalid or missing addresses must not result in a packet being sent. The page
   must report the validation error to the user. The valid numeric range is a
   configuration value and must be documented when the packet protocol is
@@ -63,7 +65,7 @@ the REST endpoint. The UI references the Swagger UI distribution from
 `unpkg.com`; the OpenAPI document is served by the application.
 
 The website's controlled-address list is client-side state in the
-`weichenweb_recent` cookie. The cookie contains at most ten validated addresses
+`weichenweb_recent` cookie. The cookie contains at most 50 validated addresses
 in FIFO order, oldest first. After a successful remote send, a previously
 unlisted address is appended; controlling an address already in the list does
 not change its position. When full, adding a new address removes the oldest.
