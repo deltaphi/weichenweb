@@ -70,13 +70,14 @@ update the list.
 ## Remote connection
 
 - Each CGI invocation reads the remote endpoint before handling the request. The
-  file must contain exactly one non-empty, trimmed line in `host:port` format,
-  where `host` is the remote host name or address and `port` is a numeric TCP
-  port from 1 through 65535.
-- The application must reject missing, malformed, or ambiguous endpoint files
-  and report the configuration error when the CGI process starts. Whitespace
-  at the beginning or end of the single line is ignored; additional non-empty
-  lines are invalid.
+  file, when present, must contain exactly one non-empty, trimmed line in
+  `host:port` format, where `host` is the remote host name or address and
+  `port` is a numeric TCP port from 1 through 65535. If the file is missing,
+  the application uses `localhost:15731`.
+- The application must reject unreadable, malformed, or ambiguous endpoint
+  files and report the configuration error when the CGI process starts.
+  Whitespace at the beginning or end of the single line is ignored;
+  additional non-empty lines are invalid.
 - For each accepted action, the CGI process opens a TCP connection to the host
   and port from the endpoint file, uses a two-second socket timeout, sends the
   packet with a full-write loop, and closes the connection when the invocation
@@ -100,8 +101,8 @@ update the list.
 - The CAN UID used to construct the accessory packet must be configurable. The
   implementation uses the `CAN_UID` environment variable and documents its
   default as `0x00004711`.
-- `remote-host.txt` must be supplied with the application and must not contain
-  credentials or other settings.
+- `remote-host.txt` is optional and must not contain credentials or other
+  settings. If it is absent, the default endpoint is `localhost:15731`.
 - In the uhttpd development container, `remote-host.txt` is copied to
   `/www/cgi-bin/remote-host.txt` because uhttpd does not pass arbitrary
   environment variables to CGI processes. `REMOTE_HOST_FILE` and `RECENT_FILE`

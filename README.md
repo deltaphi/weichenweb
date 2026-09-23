@@ -6,7 +6,8 @@ The devcontainer uses `openwrt/rootfs:x86_64-21.02.7` and installs uhttpd, Lua
 5.1, LuaSocket, Bash, Git, and sudo. Its startup command copies the CGI script
 and remote endpoint into uhttpd's document root and starts uhttpd on port 8080.
 
-Copy the example remote endpoint before creating or restarting the container:
+To use a remote endpoint other than the default `localhost:15731`, copy and
+edit the example before creating or restarting the container:
 
 ```sh
 cp remote-host.txt.example remote-host.txt
@@ -20,7 +21,9 @@ HTTP server and must not be started directly.
 
 ## Run With Docker
 
-Prepare the remote endpoint and build the image from the project directory:
+The application defaults to `localhost:15731`. To configure another endpoint,
+copy and edit `remote-host.txt.example`, then build the image from the project
+directory:
 
 ```sh
 cp remote-host.txt.example remote-host.txt
@@ -41,9 +44,10 @@ docker run --rm -it \
 Open `http://localhost:8080/cgi-bin/weichenweb` while the container is running.
 Press `Ctrl-D` or type `exit` to stop it.
 
-`remote-host.txt` must contain exactly one trimmed `host:port` line, with a TCP
-port from 1 through 65535. The server sends the 13-byte TCP packet described in
-`Accessory-Packet.md`.
+If present, `remote-host.txt` must contain exactly one trimmed `host:port` line,
+with a TCP port from 1 through 65535. If the file is absent, the default remote
+endpoint is `localhost:15731`. The server sends the 13-byte TCP packet described
+in `Accessory-Packet.md`.
 
 ## Configuration
 

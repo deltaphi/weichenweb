@@ -24,7 +24,12 @@ end
 
 local function read_remote_host(path)
   local file, open_error = io.open(path, "r")
-  if not file then error("cannot read " .. path .. ": " .. open_error) end
+  if not file then
+    if open_error and open_error:match("No such file or directory") then
+      return "localhost", 15731
+    end
+    error("cannot read " .. path .. ": " .. open_error)
+  end
   local lines = {}
   for raw_line in file:lines() do
     local line = trim(raw_line)
