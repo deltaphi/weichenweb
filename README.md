@@ -1,6 +1,6 @@
 # Weichenweb
 
-A tiny Lua application to control turnouts on your CAN-controlled model railroad layout. Nnothing else, no frills, no fuss.
+A tiny Lua application to control turnouts on your CAN-controlled model railroad layout. No frills, no fuss.
 
 Designed for the [SRSEII](http://lnxpps.de/can2udp/srseII/), but works with other webservers as well.
 
@@ -12,7 +12,7 @@ Access the webinterface at [http://gleisbox/cgi-bin/weichenweb](http://gleisbox/
 
 Enter a turnout address in the text box at the bottom and press the "red" or "green" buttons to switch the turnout either way.
 
-Whenever a turnout is controlled, it is added the the list above for repeated use. Simply press the direction button to send another command.
+Whenever a turnout is controlled, it is added to the list above for repeated use. Simply press the direction button to send another command.
 The list holds a history of up to 50 turnouts, stored in FIFO order.
 The list is stored locally in the browser.
 
@@ -20,7 +20,7 @@ Display the list sorted by turnout address, or in FIFO order (latest addition at
 
 # Installation
 
-Everything is contained in [main.lua](main.lua). Copy [main.lua](main.lua) to the cgi-bin directory of your webserver, under a convenient name. For a SRSEII, use the following:
+Everything is contained in [main.lua](main.lua). Copy [main.lua](main.lua) to the cgi-bin directory of your webserver, under a convenient name. For a [SRSEII](http://lnxpps.de/can2udp/srseII/), use the following:
 
 ```
 scp main.lua gleisbox:/www/gci-bin/weichenweb
