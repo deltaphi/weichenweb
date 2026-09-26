@@ -1,7 +1,7 @@
 {
   "name": "Lua Development",
   "build": {
-    "dockerfile": "../Dockerfile",
+    "dockerfile": "Dockerfile",
     "context": "..",
     "args": {
       "USERNAME": "lua",
