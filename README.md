@@ -51,11 +51,13 @@ Everything is contained in [main.lua](main.lua). To try out changes, you can use
 ## Docker Container
 
 The container runs the webserver from OpenWRT. Its startup command links the CGI script into uhttpd's document root and starts uhttpd on port 8080.
-To build the container, run the following command:
+To build the container on an x86_64 host, run the following command:
 
 ```sh
 docker build -t weichenweb:21.02 .
 ```
+
+When building on an M-series Mac, see the top of (Dockerfile)[./Dockerfile] so swap out the base image.
 
 Start the container by running the following command from the workspace root. The command will drop you to a shell, but the Webserver is running in the background:
 
