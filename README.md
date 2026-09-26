@@ -1,5 +1,49 @@
 # Weichenweb
 
+A tiny Lua application to control turnouts on your CAN-controlled model railroad layout. Nnothing else, no frills, no fuss.
+
+Designed for the [SRSEII](http://lnxpps.de/can2udp/srseII/), but works with other webservers as well.
+
+# Usage
+
+<a href="img/webinterface-iphone.png"><img src="img/webinterface-iphone.png" alt="Web interface on iPhone" align="right" width="250" hspace="10" vspace="10"></a>
+
+Access the webinterface at [http://gleisbox/cgi-bin/weichenweb](http://gleisbox/cgi-bin/weichenweb).
+
+Enter a turnout address in the text box at the bottom and press the "red" or "green" buttons to switch the turnout either way.
+
+Whenever a turnout is controlled, it is added the the list above for repeated use. Simply press the direction button to send another command.
+The list holds a history of up to 50 turnouts, stored in FIFO order.
+The list is stored locally in the browser.
+
+Display the list sorted by turnout address, or in FIFO order (latest addition at the top).
+
+# Installation
+
+Everything is contained in [main.lua](main.lua). Copy [main.lua](main.lua) to the cgi-bin directory of your webserver, under a convenient name. For a SRSEII, use the following:
+
+```
+scp main.lua gleisbox:/www/gci-bin/weichenweb
+```
+
+Access the webinterface at [http://gleisbox/cgi-bin/weichenweb](http://gleisbox/cgi-bin/weichenweb).
+
+If the webserver is running on the same server as the CAN gateway, no further configuration is required. If the CAN gateway is located elsewhere (e.g., when using a CS2, CAN-Schnitte or other gateway), copy `remote-host.txt.example` to the `cgi-bin` directory as `remote-host.txt`:
+
+```
+scp remote-host.txt.example gleisbox:/www/gci-bin/remote-host.txt
+```
+
+Adjust the contained host/port to match the information of your gateway.
+
+## Requirements
+
+* Webserver with support for Lua Scripts running as cgi-bin.
+* TCP-based Gateway to the CAN system, e.g. can2lan.
+
+The easiest way to fulfill them is when running on a [SRSEII](http://lnxpps.de/can2udp/srseII/).
+Almost as easy is running it in the provided Docker container.
+
 ## Run In The Dev Container
 
 The devcontainer uses `openwrt/rootfs:x86_64-21.02.7` and installs uhttpd, Lua
