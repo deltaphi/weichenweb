@@ -2,9 +2,9 @@
 
 if [ -f /workspace/main.lua ]; then
     sudo mkdir -p /www/cgi-bin
-    sudo cp /workspace/main.lua /www/cgi-bin/weichenweb
+    sudo ln -s /workspace/main.lua /www/cgi-bin/weichenweb
     if [ -f /workspace/remote-host.txt ]; then
-        sudo cp /workspace/remote-host.txt /www/cgi-bin/remote-host.txt
+        sudo ln -s /workspace/remote-host.txt /www/cgi-bin/remote-host.txt
     else
         sudo rm -f /www/cgi-bin/remote-host.txt
     fi

@@ -24,10 +24,7 @@ RUN groupadd -g "${GID}" "${USERNAME}" \
     && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > "/etc/sudoers.d/${USERNAME}" \
     && chmod 0440 "/etc/sudoers.d/${USERNAME}"
 
-COPY container-start.sh /usr/local/bin/container-start.sh
-RUN chmod 0755 /usr/local/bin/container-start.sh
-
 WORKDIR /workspace
 USER ${USERNAME}
 
-CMD ["/usr/local/bin/container-start.sh"]
+CMD ["/workspace/container-start.sh"]
