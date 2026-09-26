@@ -23,17 +23,19 @@ HTTP server and must not be started directly.
 
 The application defaults to `localhost:15731`. To configure another endpoint,
 copy and edit `remote-host.txt.example`, then build the image from the project
-directory:
+.devcontainer directory:
 
 ```sh
 cp remote-host.txt.example remote-host.txt
+cd .devcontainer
 docker build -t weichenweb:21.02 .
 ```
 
-Start the container interactively. The container startup command copies the CGI
+Start the container interactively from the top-level project directory. The container startup command links the CGI
 files into uhttpd's document root, starts uhttpd, and leaves the shell running:
 
 ```sh
+cd ..
 docker run --rm -it \
   --name weichenweb \
   --publish 8080:8080 \
