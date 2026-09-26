@@ -27,4 +27,4 @@ RUN groupadd -g "${GID}" "${USERNAME}" \
 WORKDIR /workspace
 USER ${USERNAME}
 
-CMD ["/workspace/.devcontainer/container-start.sh"]
+CMD ["/workspace/container-start.sh"]
