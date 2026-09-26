@@ -10,10 +10,10 @@ if [ -f /workspace/main.lua ]; then
     fi
     sudo chmod +x /www/cgi-bin/weichenweb
     if ! pidof uhttpd >/dev/null 2>&1; then
-        sudo uhttpd -p 0.0.0.0:8080 -h /www -x /cgi-bin
+        echo "Starting Webserver. Access at http://localhost:8080/cgi-bin/weichenweb"
+        echo "Press CTRL+C to exit"
+        sudo uhttpd -f -p 0.0.0.0:8080 -h /www -x /cgi-bin
     fi
 else
     echo "weichenweb: waiting for /workspace/main.lua" >&2
 fi
-
-exec /bin/bash
