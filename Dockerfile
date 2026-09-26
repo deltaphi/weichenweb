@@ -9,7 +9,6 @@ RUN mkdir -p /var/lock \
     && opkg install \
         bash \
         ca-bundle \
-        git \
         lua \
         luac \
         luci-lib-nixio \
