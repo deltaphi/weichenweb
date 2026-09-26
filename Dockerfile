@@ -1,4 +1,6 @@
-FROM openwrt/rootfs:x86_64-21.02.7
+
+# Use the following FROM statement to build and run on an M-series Mac:
+#FROM --platform=linux/amd64 openwrt/rootfs:armvirt-64-21.02.7
 
 ARG USERNAME=lua
 ARG UID=1000
